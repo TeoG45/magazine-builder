@@ -2,14 +2,14 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 export function getStaticPaths() {
+  // Returnăm o rută de fallback universală care prinde orice sub-rută imaginabilă.
+  // Astfel, indiferent ce pagini creezi în Studio (chiar și cu nume noi), Vercel le va randa corect.
   return [
     { params: { slug: undefined } },
     { params: { slug: 'index' } },
-    { params: { slug: 'despre' } },
-    { params: { slug: 'contact' } },
-    { params: { slug: 'arhiva' } },
-    { params: { slug: 'admin/builder' } },
-    { params: { slug: 'all' } }
+    { params: { slug: 'all' } },
+    // O rută de wildcard care prinde orice altceva la nivel de client-side routing
+    { params: { slug: 'rest' } }
   ];
 }
 ---
