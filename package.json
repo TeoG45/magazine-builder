@@ -8,6 +8,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@astrojs/vercel": "11.0.21",
     "@tiptap/core": "^3.33.0",
     "@tiptap/starter-kit": "^3.33.0",
     "astro": "^4.0.0"
