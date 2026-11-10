@@ -1,5 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { slug: undefined } },
+    { params: { slug: 'index' } },
+    { params: { slug: 'despre' } },
+    { params: { slug: 'contact' } },
+    { params: { slug: 'arhiva' } },
+    { params: { slug: 'admin/builder' } },
+    { params: { slug: 'all' } }
+  ];
+}
 ---
 <BaseLayout title="Revistă Săptămânală de Slow Journalism">
   <!-- Bară de Progres la Scroll (Verde Smarald) -->
