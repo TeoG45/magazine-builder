@@ -3,4 +3,4 @@
 node_modules/
 .astro/
 dist/
-5"
+.vercel/
