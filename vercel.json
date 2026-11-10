@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "astro",
+  "functions": {
+    "dist/**/*": {
+      "maxDuration": 30
+    }
+  }
+}
