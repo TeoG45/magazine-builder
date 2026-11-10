@@ -1,0 +1,8 @@
+{
+  "framework": "astro",
+  "functions": {
+    "app/entry.mjs": {
+      "runtime": "nodejs22.x"
+    }
+  }
+}
