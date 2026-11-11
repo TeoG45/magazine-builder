@@ -1,6 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 ---
+<script define:vars={{ supabaseUrl, supabaseAnonKey }}>
+  window.SUPABASE_URL = supabaseUrl;
+  window.SUPABASE_ANON_KEY = supabaseAnonKey;
+</script>
 <BaseLayout title="Visual Builder - Studio Tipografic">
   <Fragment slot="head">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1955,8 +1961,11 @@ async saveCurrentPage() {
             localStorage.setItem('imaginea_lumii_pages', currentState);
 
             const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-            const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
-            const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+            
+            // Folosim variabilele globale setate sigur de Astro
+            const SUPABASE_URL = window.SUPABASE_URL;
+            const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
+            
             const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
             const page = this.currentPage;
