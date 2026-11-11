@@ -1957,8 +1957,8 @@ async saveCurrentPage() {
             localStorage.setItem('imaginea_lumii_pages', currentState);
 
             // 2. Conectarea la Supabase direct din browser
-            const SUPABASE_URL = "${import.meta.env.PUBLIC_SUPABASE_URL}";
-            const SUPABASE_ANON_KEY = "${import.meta.env.PUBLIC_SUPABASE_ANON_KEY}";
+            const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
+            const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             
             if (!window.supabaseClient) {
               window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
