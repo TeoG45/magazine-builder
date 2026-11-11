@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 <BaseLayout title="Visual Builder - Studio Tipografic">
   <Fragment slot="head">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,300;0,700;1,300&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;600&family=Space+Grotesk:wght@400;600&family=Special+Elite&family=Playpen+Sans&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,700;1,6..72,400&family=Cardo:ital,wght@0,400;0,700;1,400&family=Baskervville:ital@0;1&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;1,6..96,400&family=Amatic+SC:wght@700&family=Rozha+One&family=Italiana&family=Prata&family=Syne:wght@500;700&display=swap" rel="stylesheet">
@@ -1945,23 +1946,72 @@ toggleCenterWidth(index) {
           this.saveCurrentPage();
         },
 
-saveCurrentPage() {
-      try {
-        const currentState = JSON.stringify(this.pages);
-        
-        if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
-          this.pageHistory.push(currentState);
-          if (this.pageHistory.length > 5) { // Redus la 5 stări anterioare pentru siguranță
-            this.pageHistory.shift();
-          }
-        }
+async saveCurrentPage() {
+          try {
+            // 1. Salvăm și local ca backup rapid pentru Undo
+            const currentState = JSON.stringify(this.pages);
+            if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
+              this.pageHistory.push(currentState);
+              if (this.pageHistory.length > 5) { this.pageHistory.shift(); }
+            }
+            localStorage.setItem('imaginea_lumii_pages', currentState);
 
-        localStorage.setItem('imaginea_lumii_pages', currentState);
-      } catch (e) {
-        console.warn("Memoria LocalStorage este plină. Curățați istoricul sau folosiți imagini prin URL.");
-        alert("Atenție: Spațiul de stocare din browser este plin din cauza imaginilor mari. Vă recomandăm să folosiți link-uri externe (Unsplash/Supabase) sau să faceți un Export (Backup) și să goliți cache-ul.");
-      }
-    },
+            // 2. Conectarea la Supabase direct din browser
+            const SUPABASE_URL = "${import.meta.env.PUBLIC_SUPABASE_URL}";
+            const SUPABASE_ANON_KEY = "${import.meta.env.PUBLIC_SUPABASE_ANON_KEY}";
+            
+            if (!window.supabaseClient) {
+              window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            const db = window.supabaseClient;
+
+            const page = this.currentPage;
+            if (!page) return;
+
+            // 3. Trimitem pagina curentă în tabela `pages`
+            const { error: pageError } = await db
+              .from('pages')
+              .upsert({
+                id: page.slug,
+                title: page.title,
+                slug: page.slug,
+                header_type: page.headerType || 'classic',
+                footer_type: page.footerType || 'full',
+                headerTitle: page.headerTitle || '',
+                headerMetaLeft: page.headerMetaLeft || '',
+                headerMetaCenter: page.headerMetaCenter || '',
+                headerMetaRight: page.headerMetaRight || '',
+                footerText: page.footerText || '',
+                sort_order: 0
+              }, { onConflict: 'slug' });
+
+            if (pageError) throw pageError;
+
+            // 4. Curățăm blocurile vechi ale acestei pagini și le punem pe cele noi în tabela `blocks`
+            await db.from('blocks').delete().eq('page_id', page.slug);
+
+            if (page.elements && page.elements.length > 0) {
+              const blocksToInsert = page.elements.map((el, index) => ({
+                id: crypto.randomUUID(),
+                page_id: page.slug,
+                type: 'element',
+                sort_order: index,
+                content: {
+                  html: el.html || '',
+                  style: el.style || 'width: 100%;'
+                }
+              }));
+
+              const { error: blocksError } = await db.from('blocks').insert(blocksToInsert);
+              if (blocksError) throw blocksError;
+            }
+
+            console.log("✅ Salvat cu succes în Supabase!");
+          } catch (e) {
+            console.error("Eroare la salvare:", e);
+            alert("Eroare la salvarea în baza de date: " + (e.message || e));
+          }
+        },
 
 undoLastAction() {
           if (this.pageHistory.length <= 1) {
