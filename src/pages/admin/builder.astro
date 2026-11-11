@@ -1970,8 +1970,7 @@ async saveCurrentPage() {
 
             const page = this.currentPage;
             if (!page) return;
-
-            const { error: pageError } = await db
+const { error: pageError } = await db
               .from('pages')
               .upsert({
                 id: page.slug,
@@ -1979,11 +1978,6 @@ async saveCurrentPage() {
                 slug: page.slug,
                 header_type: page.headerType || 'classic',
                 footer_type: page.footerType || 'full',
-                headerTitle: page.headerTitle || '',
-                headerMetaLeft: page.headerMetaLeft || '',
-                headerMetaCenter: page.headerMetaCenter || '',
-                headerMetaRight: page.headerMetaRight || '',
-                footerText: page.footerText || '',
                 sort_order: 0
               }, { onConflict: 'slug' });
 
