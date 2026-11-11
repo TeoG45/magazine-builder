@@ -1956,14 +1956,13 @@ async saveCurrentPage() {
             }
             localStorage.setItem('imaginea_lumii_pages', currentState);
 
-            // 2. Conectarea la Supabase direct din browser
+            // 2. Conectarea la Supabase folosind pachetul oficial importat nativ
+            const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+            
             const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
             const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             
-            if (!window.supabaseClient) {
-              window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
-            const db = window.supabaseClient;
+            const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
             const page = this.currentPage;
             if (!page) return;
