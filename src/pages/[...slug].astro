@@ -2,13 +2,10 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 export function getStaticPaths() {
-  // Returnăm o rută de fallback universală care prinde orice sub-rută imaginabilă.
-  // Astfel, indiferent ce pagini creezi în Studio (chiar și cu nume noi), Vercel le va randa corect.
   return [
     { params: { slug: undefined } },
     { params: { slug: 'index' } },
     { params: { slug: 'all' } },
-    // O rută de wildcard care prinde orice altceva la nivel de client-side routing
     { params: { slug: 'rest' } }
   ];
 }
@@ -27,7 +24,7 @@ export function getStaticPaths() {
     <!-- Conținut Principal -->
     <main class="max-w-5xl mx-auto px-4 py-10 flex-grow w-full" id="rendered-content">
       <section class="text-center py-12">
-        <h1 class="font-serif text-2xl text-stone-400">Se încarcă pagina...</h1>
+        <h1 class="font-serif text-2xl text-stone-400">Se încarcă revista din Supabase...</h1>
       </section>
     </main>
 
@@ -36,8 +33,17 @@ export function getStaticPaths() {
 
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
+  <!-- Încărcăm clientul Supabase direct în pagină pentru randare dinamică -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // Preluăm variabilele de mediu publice din Astro
+    const SUPABASE_URL = "${import.meta.env.PUBLIC_SUPABASE_URL}";
+    const SUPABASE_ANON_KEY = "${import.meta.env.PUBLIC_SUPABASE_ANON_KEY}";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.addEventListener('DOMContentLoaded', async () => {
       // 1. Progres scroll
       const progressBar = document.getElementById('scroll-progress-bar');
       const updateScrollProgress = () => {
@@ -51,150 +57,142 @@ export function getStaticPaths() {
       window.addEventListener('scroll', updateScrollProgress, { passive: true });
       updateScrollProgress();
 
-      // 2. Randare pagină publică
-      const path = window.location.pathname.replace(/^\/|\/$/g, '');
+      // 2. Determinăm slug-ul curent din URL
+      const path = window.location.pathname.replace(/^\\/|\\$/g, '');
       const currentSlug = path === '' ? 'index' : path;
 
-      const savedPages = localStorage.getItem('imaginea_lumii_pages');
-      if (savedPages) {
-        try {
-          const pages = JSON.parse(savedPages);
-          const pageData = pages.find(p => p.slug === currentSlug) || pages.find(p => p.slug === 'index');
+      try {
+        // Preluăm toate paginile din Supabase
+        const { data: pages, error: pagesError } = await supabase
+          .from('pages')
+          .select('*')
+          .order('sort_order', { ascending: true });
 
-          if (pageData) {
-            const customTitle = pageData.headerTitle || 'IMAGINEA LUMII';
-            const metaLeft = pageData.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026';
-            const metaCenter = pageData.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism';
-            const metaRight = pageData.headerMetaRight || 'Fără zgomot. Doar idei.';
-            
-            const mainPage = pages.find(p => p.slug === 'index');
-            const headerStyle = (mainPage && mainPage.headerType) ? mainPage.headerType : (pageData.headerType || 'classic');
-            const footerStyle = (mainPage && mainPage.footerType) ? mainPage.footerType : (pageData.footerType || 'full');
-            const customFooter = (mainPage && mainPage.footerText) ? mainPage.footerText : (pageData.footerText || '© 2026 Imaginea Lumii');
-            
-            const newsTitle = (mainPage && mainPage.newsletterTitle) ? mainPage.newsletterTitle : (pageData.newsletterTitle || '📬 Scrisori Editoriale pe Email');
-            const newsDesc = (mainPage && mainPage.newsletterDesc) ? mainPage.newsletterDesc : (pageData.newsletterDesc || 'Primiți analize profunde și eseurile săptămânale direct în inbox. Fără zgomot.');
+        if (pagesError || !pages || pages.length === 0) {
+          throw new Error('Nu s-au putut încărca paginile din baza de date.');
+        }
 
-            const navLinks = pages.map(p => {
-              const pUrl = p.slug === 'index' ? '/' : `/${p.slug}`;
-              const isActive = p.slug === currentSlug;
-              return { url: pUrl, title: p.title, active: isActive };
-            });
+        // Găsim pagina curentă sau cădem pe index
+        const pageData = pages.find(p => p.slug === currentSlug) || pages.find(p => p.slug === 'index');
+        const mainPage = pages.find(p => p.slug === 'index');
 
-            const headerContainer = document.getElementById('rendered-header');
-            const footerContainer = document.getElementById('rendered-footer');
-            let headerHTML = '';
-            let footerHTML = '';
+        if (pageData) {
+          const customTitle = pageData.headerTitle || pageData.title || 'IMAGINEA LUMII';
+          const metaLeft = pageData.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026';
+          const metaCenter = pageData.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism';
+          const metaRight = pageData.headerMetaRight || 'Fără zgomot. Doar idei.';
+          
+          const headerStyle = (mainPage && mainPage.header_type) ? mainPage.header_type : (pageData.header_type || 'classic');
+          const footerStyle = (mainPage && mainPage.footer_type) ? mainPage.footer_type : (pageData.footer_type || 'full');
+          const customFooter = pageData.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.';
+          
+          const newsTitle = pageData.newsletterTitle || '📬 Scrisori Editoriale pe Email';
+          const newsDesc = pageData.newsletterDesc || 'Primiți analize profunde și eseurile săptămânale direct în inbox. Fără zgomot.';
 
-            const newsletterHTML = `
-              <div class="my-8 p-6 bg-stone-100 border border-stone-300 rounded text-center max-w-xl mx-auto font-sans shadow-xs">
-                <h4 class="font-serif font-bold text-base mb-1 tracking-wide text-stone-900">${newsTitle}</h4>
-                <p class="text-xs text-stone-600 mb-4">${newsDesc}</p>
-                <form onsubmit="event.preventDefault(); alert('Vă mulțumim pentru abonare! Veți primi curând primul număr.'); this.reset();" class="flex gap-2 justify-center">
-                  <label for="newsletter-email-input" class="sr-only">Adresă de email</label>
-                  <input id="newsletter-email-input" name="email" type="email" placeholder="adresa.dumneavoastra@email.com" required class="px-3 py-2 text-xs rounded border bg-white border-stone-300 text-stone-900 focus:outline-none focus:border-amber-600 w-64" />
-                  <button type="submit" class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition">Abonează-te</button>
-                </form>
-              </div>
-            `;
+          const navLinks = pages.map(p => {
+            const pUrl = p.slug === 'index' ? '/' : `/${p.slug}`;
+            const isActive = p.slug === currentSlug;
+            return { url: pUrl, title: p.title, active: isActive };
+          });
 
-            // Cele 10 stiluri de Header
-            if (headerStyle === 'classic') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-900 font-bold underline' : 'hover:text-amber-800'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="border-b-2 border-stone-900 bg-[#FBF9F5] py-6 text-center font-serif px-4"><div class="max-w-5xl mx-auto flex justify-between items-center text-[11px] text-stone-600 border-b border-stone-300 pb-2 mb-4 font-sans uppercase tracking-widest"><span>${metaLeft}</span><span>${metaCenter}</span><span>${metaRight}</span></div><h1 class="text-5xl font-bold tracking-tight text-stone-900 my-2">${customTitle}</h1><nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold tracking-widest text-stone-800 mt-4 border-t border-stone-300 pt-3">${links}<a href="/admin/builder" class="text-amber-800 font-bold">+ Admin</a></nav></header>`;
-            } else if (headerStyle === 'minimal') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="border-b border-stone-200 bg-white px-8 py-5 flex justify-between items-center font-sans"><a href="/" class="font-serif text-xl font-bold text-stone-900 tracking-tight">${customTitle}</a><nav class="flex items-center gap-6 text-xs font-medium tracking-wide">${links}<a href="/admin/builder" class="bg-stone-900 text-white px-3 py-1.5 rounded-xs text-[11px]">Studio Admin</a></nav></header>`;
-            } else if (headerStyle === 'luxe') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-700 font-bold border-b border-amber-700 pb-0.5' : 'text-stone-400 hover:text-white'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="bg-stone-950 text-white py-10 px-4 text-center font-serif border-b-4 border-amber-600"><span class="text-[10px] uppercase font-sans tracking-[0.3em] text-amber-500 block mb-2">${metaCenter}</span><h1 class="text-6xl font-normal tracking-widest text-stone-100 uppercase my-3">${customTitle}</h1><nav class="flex justify-center gap-8 text-xs font-sans uppercase tracking-[0.2em] text-stone-300 mt-6 pt-4 border-t border-stone-800">${links}</nav></header>`;
-            } else if (headerStyle === 'emblem') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-stone-900 font-bold' : 'text-stone-600 hover:text-amber-800'}">${l.title}</a>`).join(' <span class="text-stone-300">•</span> ');
-              headerHTML = `<header class="bg-amber-50/60 border-b border-amber-200/80 py-8 text-center font-serif px-4"><div class="inline-block border border-amber-800/40 rounded-full px-3 py-1 text-[10px] uppercase font-sans text-amber-900 tracking-widest mb-3">🕮 ${metaLeft}</div><h1 class="text-4xl font-bold text-stone-900 block tracking-tight">${customTitle}</h1><nav class="flex justify-center flex-wrap gap-3 text-xs uppercase font-sans tracking-widest text-stone-700 mt-4 border-t border-amber-200/60 pt-3 max-w-2xl mx-auto">${links}</nav></header>`;
-            } else if (headerStyle === 'brutalist') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="px-3 py-1 border-r border-black last:border-r-0 ${l.active ? 'bg-amber-400 font-bold' : 'hover:bg-stone-200'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="border-b-4 border-black bg-white p-4 font-sans"><div class="flex justify-between items-center border-2 border-black p-4 mb-2 bg-yellow-100"><h1 class="text-3xl font-black text-black uppercase tracking-tighter">${customTitle}</h1><span class="text-xs font-bold border border-black px-2 py-1 bg-white">${metaRight}</span></div><nav class="flex border-2 border-black bg-white text-xs uppercase font-bold text-black">${links}</nav></header>`;
-            } else if (headerStyle === 'literary') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-900 italic font-bold underline' : 'text-stone-700 hover:text-stone-950'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="bg-[#F5F0E6] border-b border-stone-300 py-8 px-6 text-center font-serif text-stone-800"><h1 class="text-4xl font-normal italic mb-1">${customTitle}</h1><div class="text-xs text-stone-500 font-sans tracking-widest my-2">— ⁂ —</div><nav class="flex justify-center gap-6 text-sm font-serif mt-4">${links}</nav></header>`;
-            } else if (headerStyle === 'double') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-800 font-bold border-b-2 border-amber-800 pb-2' : 'text-stone-700 hover:text-stone-900'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="font-sans border-b border-stone-300"><div class="bg-stone-900 text-stone-300 px-8 py-2 text-[11px] flex justify-between items-center uppercase tracking-widest"><span>${metaLeft}</span><span>${metaRight}</span></div><div class="bg-white px-8 py-6 flex justify-between items-center"><h1 class="font-serif text-3xl font-bold text-stone-900">${customTitle}</h1><nav class="flex gap-6 text-xs uppercase font-semibold tracking-wider">${links}</nav></div></header>`;
-            } else if (headerStyle === 'pills') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="px-4 py-1.5 rounded-full text-xs font-sans font-medium transition ${l.active ? 'bg-stone-900 text-white' : 'bg-stone-200/70 text-stone-700 hover:bg-stone-300'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="bg-white/80 backdrop-blur border-b border-stone-200 py-4 px-6 flex justify-between items-center"><h1 class="font-serif text-xl font-bold text-stone-900 tracking-tight">${customTitle}</h1><nav class="flex gap-2">${links}</nav></header>`;
-            } else if (headerStyle === 'dramatic') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-white font-bold underline' : 'text-stone-400 hover:text-white'}">${l.title}</a>`).join('');
-              headerHTML = `<header class="bg-stone-900 text-white p-8 font-serif"><div class="max-w-5xl mx-auto"><span class="text-xs uppercase font-sans text-amber-500 tracking-widest block mb-2">${metaLeft}</span><h1 class="text-6xl md:text-7xl font-bold tracking-tighter text-amber-100 my-4">${customTitle}</h1><div class="h-1 w-24 bg-amber-600 mb-6"></div><nav class="flex gap-8 text-xs uppercase font-sans tracking-widest">${links}</nav></div></header>`;
-            } else if (headerStyle === 'typewriter') {
-              const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'bg-stone-900 text-white px-2 py-0.5' : 'text-stone-800 hover:underline'}">[ ${l.title} ]</a>`).join('');
-              headerHTML = `<header class="bg-[#F0EDE6] border-b-2 border-dashed border-stone-400 p-6 text-center font-mono"><div class="text-[10px] text-stone-500 uppercase tracking-widest mb-1">DOSAR DE PRESĂ :: ${metaLeft}</div><h1 class="text-3xl font-bold text-stone-900 tracking-wide uppercase my-2">${customTitle}</h1><nav class="flex justify-center flex-wrap gap-4 text-xs mt-4 pt-3 border-t border-stone-300">${links}</nav></header>`;
-            }
+          const headerContainer = document.getElementById('rendered-header');
+          const footerContainer = document.getElementById('rendered-footer');
+          let headerHTML = '';
+          let footerHTML = '';
 
-            // Footer cu Newsletter inclus
-            if (footerStyle === 'minimal') {
-              footerHTML = `<footer class="bg-white border-t border-stone-200 text-stone-500 py-8 px-6 font-sans text-xs text-center"><div class="max-w-4xl mx-auto">${newsletterHTML}<div class="whitespace-pre-line mt-4">${customFooter}</div><div class="mt-4 pt-3 border-t border-stone-200 flex justify-between items-center text-[11px]"><span>Slow Journalism</span><a href="/admin/builder" class="text-stone-900 font-semibold hover:underline">Admin Studio</a></div></div></footer>`;
-            } else {
-              footerHTML = `<footer class="bg-[#F3EFE6] border-t-2 border-stone-900 text-stone-700 py-10 px-6 font-serif text-center"><div class="max-w-4xl mx-auto">${newsletterHTML}<div class="text-sm font-semibold tracking-wide whitespace-pre-line mt-6">${customFooter}</div><div class="border-t border-stone-300 mt-6 pt-4 text-[11px] flex justify-between items-center font-sans"><span>Toate drepturile rezervate</span><a href="/admin/builder" class="text-amber-900 hover:underline font-bold">Panou Admin</a></div></div></footer>`;
-            }
+          const newsletterHTML = `
+            <div class="my-8 p-6 bg-stone-100 border border-stone-300 rounded text-center max-w-xl mx-auto font-sans shadow-xs">
+              <h4 class="font-serif font-bold text-base mb-1 tracking-wide text-stone-900">${newsTitle}</h4>
+              <p class="text-xs text-stone-600 mb-4">${newsDesc}</p>
+              <form onsubmit="event.preventDefault(); alert('Vă mulțumim pentru abonare! Veți primi curând primul număr.'); this.reset();" class="flex gap-2 justify-center">
+                <label for="newsletter-email-input" class="sr-only">Adresă de email</label>
+                <input id="newsletter-email-input" name="email" type="email" placeholder="adresa.dumneavoastra@email.com" required class="px-3 py-2 text-xs rounded border bg-white border-stone-300 text-stone-900 focus:outline-none focus:border-amber-600 w-64" />
+                <button type="submit" class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition">Abonează-te</button>
+              </form>
+            </div>
+          `;
 
-            headerContainer.innerHTML = headerHTML;
-            footerContainer.innerHTML = footerHTML;
+          // Randare Header în funcție de stil
+          if (headerStyle === 'classic') {
+            const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-900 font-bold underline' : 'hover:text-amber-800'}">${l.title}</a>`).join('');
+            headerHTML = `<header class="border-b-2 border-stone-900 bg-[#FBF9F5] py-6 text-center font-serif px-4"><div class="max-w-5xl mx-auto flex justify-between items-center text-[11px] text-stone-600 border-b border-stone-300 pb-2 mb-4 font-sans uppercase tracking-widest"><span>${metaLeft}</span><span>${metaCenter}</span><span>${metaRight}</span></div><h1 class="text-5xl font-bold tracking-tight text-stone-900 my-2">${customTitle}</h1><nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold tracking-widest text-stone-800 mt-4 border-t border-stone-300 pt-3">${links}<a href="/admin/builder" class="text-amber-800 font-bold">+ Admin</a></nav></header>`;
+          } else if (headerStyle === 'minimal') {
+            const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900'}">${l.title}</a>`).join('');
+            headerHTML = `<header class="border-b border-stone-200 bg-white px-8 py-5 flex justify-between items-center font-sans"><a href="/" class="font-serif text-xl font-bold text-stone-900 tracking-tight">${customTitle}</a><nav class="flex items-center gap-6 text-xs font-medium tracking-wide">${links}<a href="/admin/builder" class="bg-stone-900 text-white px-3 py-1.5 rounded-xs text-[11px]">Studio Admin</a></nav></header>`;
+          } else {
+            const links = navLinks.map(l => `<a href="${l.url}" class="${l.active ? 'text-amber-900 font-bold underline' : 'hover:text-amber-800'}">${l.title}</a>`).join('');
+            headerHTML = `<header class="border-b-2 border-stone-900 bg-[#FBF9F5] py-6 text-center font-serif px-4"><h1 class="text-5xl font-bold text-stone-900 my-2">${customTitle}</h1><nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold text-stone-800 mt-4">${links}</nav></header>`;
+          }
 
-            // -------------------------------------------------------------
-            // RANDARE CONȚINUT (Control complet pe 2 Opțiuni de Aliniere)
-            // -------------------------------------------------------------
-            const contentContainer = document.getElementById('rendered-content');
-            if (contentContainer) {
-              contentContainer.setAttribute('class', 'max-w-5xl mx-auto px-4 py-10 flex-grow w-full flex flex-wrap items-start justify-between gap-y-6');
+          // Randare Footer
+          footerHTML = `<footer class="bg-[#F3EFE6] border-t-2 border-stone-900 text-stone-700 py-10 px-6 font-serif text-center"><div class="max-w-4xl mx-auto">${newsletterHTML}<div class="text-sm font-semibold whitespace-pre-line mt-6">${customFooter}</div><div class="border-t border-stone-300 mt-6 pt-4 text-[11px] flex justify-between items-center font-sans"><span>Toate drepturile rezervate</span><a href="/admin/builder" class="text-amber-900 hover:underline font-bold">Panou Admin</a></div></div></footer>`;
 
-              if (pageData.elements && pageData.elements.length > 0) {
-                contentContainer.innerHTML = pageData.elements.map(el => {
-                  let elementStyle = el.style || 'width: 100%;';
-                  const isCentered = elementStyle.includes('margin-left: auto') || elementStyle.includes('margin-left:auto');
+          headerContainer.innerHTML = headerHTML;
+          footerContainer.innerHTML = footerHTML;
 
-                  // OPȚIUNEA 2: Dacă elementul redus este CENTRAT, ocupă 100% din rând și își centrează conținutul
-                  if (isCentered) {
-                    let calcWidth = '50%';
-                    if (elementStyle.includes('width: 30%')) calcWidth = '30%';
-                    if (elementStyle.includes('width: 75%')) calcWidth = '75%';
+          // 3. Preluăm blocurile (elementele) asociate acestei pagini din tabela `blocks` din Supabase
+          const { data: blocks, error: blocksError } = await supabase
+            .from('blocks')
+            .select('*')
+            .eq('page_id', pageData.id)
+            .order('sort_order', { ascending: true });
 
-                    return `
-                      <div style="width: 100%; display: flex; justify-content: center; box-sizing: border-box;">
-                        <div style="width: ${calcWidth}; box-sizing: border-box;">
-                          ${el.html}
-                        </div>
-                      </div>
-                    `;
-                  }
+          const contentContainer = document.getElementById('rendered-content');
+          if (contentContainer) {
+            contentContainer.setAttribute('class', 'max-w-5xl mx-auto px-4 py-10 flex-grow w-full flex flex-wrap items-start justify-between gap-y-6');
 
-                  // OPȚIUNEA 1: Dacă elementul redus NU este centrat, se așază în FLUX (stânga-dreapta alături de altele)
-                  if (elementStyle.includes('width: 50%')) {
-                    elementStyle = elementStyle.replace('width: 50%', 'width: calc(50% - 12px)');
-                  } else if (elementStyle.includes('width: 30%')) {
-                    elementStyle = elementStyle.replace('width: 30%', 'width: calc(33.333% - 16px)');
-                  } else if (elementStyle.includes('width: 75%')) {
-                    elementStyle = elementStyle.replace('width: 75%', 'width: calc(75% - 12px)');
-                  }
+            if (blocks && blocks.length > 0) {
+              contentContainer.innerHTML = blocks.map(block => {
+                // Extragem HTML-ul și stilul salvate în coloana jsonb `content`
+                const blockContent = block.content || {};
+                const htmlContent = blockContent.html || '';
+                let elementStyle = blockContent.style || 'width: 100%;';
+                const isCentered = elementStyle.includes('margin-left: auto') || elementStyle.includes('margin-left:auto');
+
+                if (isCentered) {
+                  let calcWidth = '50%';
+                  if (elementStyle.includes('width: 30%')) calcWidth = '30%';
+                  if (elementStyle.includes('width: 75%')) calcWidth = '75%';
 
                   return `
-                    <div style="box-sizing: border-box; ${elementStyle}">
-                      ${el.html}
+                    <div style="width: 100%; display: flex; justify-content: center; box-sizing: border-box;">
+                      <div style="width: ${calcWidth}; box-sizing: border-box;">
+                        ${htmlContent}
+                      </div>
                     </div>
                   `;
-                }).join('');
-              } else {
-                contentContainer.innerHTML = `
-                  <div class="text-center py-16 font-serif text-stone-500 w-full">
-                    Această pagină nu conține încă elemente editoriale.
+                }
+
+                if (elementStyle.includes('width: 50%')) {
+                  elementStyle = elementStyle.replace('width: 50%', 'width: calc(50% - 12px)');
+                } else if (elementStyle.includes('width: 30%')) {
+                  elementStyle = elementStyle.replace('width: 30%', 'width: calc(33.333% - 16px)');
+                } else if (elementStyle.includes('width: 75%')) {
+                  elementStyle = elementStyle.replace('width: 75%', 'width: calc(75% - 12px)');
+                }
+
+                return `
+                  <div style="box-sizing: border-box; ${elementStyle}">
+                    ${htmlContent}
                   </div>
                 `;
-              }
+              }).join('');
+            } else {
+              contentContainer.innerHTML = `
+                <div class="text-center py-16 font-serif text-stone-500 w-full">
+                  Această pagină nu conține încă elemente editoriale în baza de date Supabase.
+                </div>
+              `;
             }
           }
-        } catch (e) {
-          console.error("Eroare la randare:", e);
         }
+      } catch (err) {
+        console.error("Eroare la preluarea datelor din Supabase:", err);
+        document.getElementById('rendered-content').innerHTML = `
+          <div class="text-center py-16 font-serif text-red-600 w-full">
+            Eroare de conexiune cu baza de date Supabase. Vă rugăm verificați configurarea.
+          </div>
+        `;
       }
     });
   </script>
