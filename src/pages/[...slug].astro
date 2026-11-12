@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
 export function getStaticPaths() {
   return [
     { params: { slug: undefined } },
@@ -34,14 +37,11 @@ export function getStaticPaths() {
   </div>
 
   <!-- Încărcăm clientul Supabase direct în pagină pentru randare dinamică -->
-  <script type="module">
+  <script type="module" define:vars={{ supabaseUrl, supabaseAnonKey }}>
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Preluăm variabilele de mediu publice din Astro
-    const SUPABASE_URL = "${import.meta.env.PUBLIC_SUPABASE_URL}";
-    const SUPABASE_ANON_KEY = "${import.meta.env.PUBLIC_SUPABASE_ANON_KEY}";
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Preluăm variabilele de mediu injectate în siguranță de Astro
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     document.addEventListener('DOMContentLoaded', async () => {
       // 1. Progres scroll
@@ -58,7 +58,7 @@ export function getStaticPaths() {
       updateScrollProgress();
 
       // 2. Determinăm slug-ul curent din URL
-      const path = window.location.pathname.replace(/^\\/|\\$/g, '');
+      const path = window.location.pathname.replace(/^\/|\/$/g, '');
       const currentSlug = path === '' ? 'index' : path;
 
       try {
