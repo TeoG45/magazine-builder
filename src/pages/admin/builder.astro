@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KE
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 ---
 <BaseLayout title="Visual Builder - Studio Tipografic">
   <Fragment slot="head">
@@ -871,12 +871,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KE
       </div>
     </template>
     
-    <script type="module" define:vars={{ supabaseUrl, supabaseAnonKey }}>
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    
-    // Inițializăm clientul global pe window
-    window.supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-  </script>
+   <script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const supabaseUrl = "https://dllcpmsbfujauzsycfbj.supabase.co";
+  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGNwbXNiZnVqYXV6c3ljZmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTIwNDcsImV4cCI6MjEwODUyODA0N30.xVVtGFv3OX2IIpBYJ4723xJrOCZimNa51NPnM_Ryuoc";
+
+  window.supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  console.log("Supabase client inițializat cu succes!", window.supabaseClient);
+</script>
 
   <script is:inline>
       window.adminApp = function() {
