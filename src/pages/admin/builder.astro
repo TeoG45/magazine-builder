@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KE
 ---
 <BaseLayout title="Visual Builder - Studio Tipografic">
   <Fragment slot="head">
@@ -867,9 +870,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
       </div>
     </template>
+    
+    <script type="module" define:vars={{ supabaseUrl, supabaseAnonKey }}>
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    
+    // Inițializăm clientul global pe window
+    window.supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  </script>
 
   <script is:inline>
-    window.adminApp = function() {
+      window.adminApp = function() {
       return {
         isAuthenticated: false,
         passwordInput: '',
@@ -2031,24 +2041,71 @@ toggleCenterWidth(index) {
           this.saveCurrentPage();
         },
 
-saveCurrentPage() {
-      try {
-        const currentState = JSON.stringify(this.pages);
-        
-        if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
-          this.pageHistory.push(currentState);
-          if (this.pageHistory.length > 5) { // Redus la 5 stări anterioare pentru siguranță
-            this.pageHistory.shift();
+async saveCurrentPage() {
+          try {
+            // 1. Salvare locală (backup de siguranță)
+            const currentState = JSON.stringify(this.pages);
+            if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
+              this.pageHistory.push(currentState);
+              if (this.pageHistory.length > 5) {
+                this.pageHistory.shift();
+              }
+            }
+            localStorage.setItem('imaginea_lumii_pages', currentState);
+
+            // 2. Salvare în Supabase (Cloud Sync)
+            if (window.supabaseClient) {
+              const sb = window.supabaseClient;
+
+              // Salvăm fiecare pagină în tabela `pages`
+              for (const p of this.pages) {
+                const pagePayload = {
+                  id: p.id || p.slug, // folosim slug-ul sau id-ul ca identificator unic
+                  slug: p.slug,
+                  title: p.title,
+                  is_fixed: p.is_fixed || false,
+                  hidden: p.isPublished === false, // mapăm starea de publicare pe coloana hidden din DB
+                  sort_order: this.pages.indexOf(p),
+                  header_type: p.headerType || 'classic',
+                  footer_type: p.footerType || 'full'
+                };
+
+                const { error: pageError } = await sb
+                  .from('pages')
+                  .upsert(pagePayload, { onConflict: 'slug' });
+
+                if (pageError) {
+                  console.error("Eroare la salvarea paginii în Supabase:", pageError);
+                } else {
+                  // Dacă pagina s-a salvat, salvăm și blocurile (elementele) ei în tabela `blocks`
+                  // Mai întâi ștergem blocurile vechi pentru această pagină ca să le reînnoim curat
+                  const pageId = pagePayload.id;
+
+                  // Salvăm elementele curente
+                  if (p.elements && Array.isArray(p.elements)) {
+                    // Opțional: putem face upsert sau re-inserare curată
+                    for (let i = 0; i < p.elements.length; i++) {
+                      const el = p.elements[i];
+                      const blockPayload = {
+                        id: el.id || `${p.slug}-block-${i}`,
+                        page_id: pageId,
+                        type: el.type || 'html',
+                        sort_order: i,
+                        content: { html: el.html, style: el.style || '' },
+                        hidden: false
+                      };
+
+                      await sb.from('blocks').upsert(blockPayload, { onConflict: 'id' });
+                    }
+                  }
+                }
+              }
+              console.log("Sincronizarea cu Supabase s-a efectuat cu succes!");
+            }
+          } catch (e) {
+            console.warn("Eroare la salvare:", e);
           }
-        }
-
-        localStorage.setItem('imaginea_lumii_pages', currentState);
-      } catch (e) {
-        console.warn("Memoria LocalStorage este plină. Curățați istoricul sau folosiți imagini prin URL.");
-        alert("Atenție: Spațiul de stocare din browser este plin din cauza imaginilor mari. Vă recomandăm să folosiți link-uri externe (Unsplash/Supabase) sau să faceți un Export (Backup) și să goliți cache-ul.");
-      }
-    },
-
+        },
 undoLastAction() {
           if (this.pageHistory.length <= 1) {
             alert('Nu mai există nicio acțiune anterioară în memorie pentru undo!');
