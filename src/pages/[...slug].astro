@@ -1,34 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+// Forțăm valorile direct ca să fim 100% siguri că nu pleacă goale spre client
+const supabaseUrl = "https://dllcpmsbfujauzsycfbj.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGNwbXNiZnVqYXV6c3ljZmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTIwNDcsImV4cCI6MjEwODUyODA0N30.xVVtGFv3OX2IIpBYJ4723xJrOCZimNa51NPnM_Ryuoc";
 
-// 1. Luăm slug-ul din URL (dacă e gol, considerăm 'index')
-const { slug = 'index' } = Astro.params;
-
-// 2. Cerem datele din Supabase direct pe server în timpul build-ului/cererii
-let pageData = null;
-let errorMsg = null;
-
-try {
-  const response = await fetch(`${supabaseUrl}/rest/v1/pages?slug=eq.${slug}&select=*`, {
-    headers: {
-      'apikey': supabaseAnonKey,
-      'Authorization': `Bearer ${supabaseAnonKey}`
-    }
-  });
-  
-  const data = await response.json();
-  if (data && data.length > 0) {
-    pageData = data[0];
-  }
-} catch (e) {
-  errorMsg = e.message;
-}
-
-// 3. Generăm rutele dinamice pentru Astro (opțional, sau generare la cerere dacă folosești SSR)
-export async function getStaticPaths() {
+export function getStaticPaths() {
   return [
     { params: { slug: undefined } },
     { params: { slug: 'index' } }
