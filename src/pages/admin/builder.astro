@@ -1706,129 +1706,142 @@ async init() {
             }
           }
 
-       document.addEventListener('alpine:init', () => {
-      Alpine.data('magazineBuilder', () => ({
-        pages: [],
-        currentPage: {
-          slug: 'index',
-          title: 'Se încarcă...',
-          headerType: 'classic',
-          footerType: 'full',
-          headerTitle: 'IMAGINEA LUMII',
-          elements: []
-        },
-        currentPageSlug: 'index',
-        isAuthenticated: false,
-        passwordInput: '',
-        correctPassword: 'admin', // sau parola ta curentă
-        activeModal: null,
-        savedRange: null,
-        currentSelectionText: '',
+      document.addEventListener('alpine:init', () => {
+  Alpine.data('magazineBuilder', () => ({
+    pages: [],
+    currentPage: {
+      slug: 'index',
+      title: 'Se încarcă...',
+      headerType: 'classic',
+      footerType: 'full',
+      headerTitle: 'IMAGINEA LUMII',
+      elements: []
+    },
+    currentPageSlug: 'index',
+    isAuthenticated: false,
+    passwordInput: '',
+    correctPassword: 'admin',
+    activeModal: null,
+    savedRange: null,
+    currentSelectionText: '',
 
-        async init() {
-          if (sessionStorage.getItem('imaginea_lumii_auth') === 'true') {
-            this.isAuthenticated = true;
-          }
+    async init() {
+      if (sessionStorage.getItem('imaginea_lumii_auth') === 'true') {
+        this.isAuthenticated = true;
+      }
 
-          // Așteptăm clientul Supabase
-          let sb = window.supabaseClient;
-          let attempts = 0;
-          while (!sb && attempts < 20) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            sb = window.supabaseClient;
-            attempts++;
-          }
+      // Așteptăm ca clientul Supabase să fie disponibil (max 2 secunde)
+      let sb = window.supabaseClient;
+      let attempts = 0;
+      while (!sb && attempts < 20) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        sb = window.supabaseClient;
+        attempts++;
+      }
 
-          try {
-            if (sb) {
-              const { data: dbPages, error: pagesError } = await sb
-                .from('pages')
+      // Încărcăm paginile direct din Supabase la pornire
+      try {
+        if (sb) {
+          const { data: dbPages, error: pagesError } = await sb
+            .from('pages')
+            .select('*')
+            .order('sort_order', { ascending: true });
+
+          console.log("Studio - Pagini gasite in Supabase:", dbPages, "Eroare:", pagesError);
+
+          if (!pagesError && dbPages && dbPages.length > 0) {
+            this.pages = [];
+
+            for (const dbPage of dbPages) {
+              const { data: dbBlocks } = await sb
+                .from('blocks')
                 .select('*')
+                .eq('page_id', dbPage.id)
                 .order('sort_order', { ascending: true });
 
-              if (!pagesError && dbPages && dbPages.length > 0) {
-                this.pages = [];
+              const formattedElements = (dbBlocks || []).map(b => ({
+                id: b.id,
+                type: b.type,
+                html: b.content?.html || '',
+                style: b.content?.style || ''
+              }));
 
-                for (const dbPage of dbPages) {
-                  const { data: dbBlocks } = await sb
-                    .from('blocks')
-                    .select('*')
-                    .eq('page_id', dbPage.id)
-                    .order('sort_order', { ascending: true });
-
-                  const formattedElements = (dbBlocks || []).map(b => ({
-                    id: b.id,
-                    type: b.type,
-                    html: b.content?.html || '',
-                    style: b.content?.style || ''
-                  }));
-
-                  this.pages.push({
-                    id: dbPage.id,
-                    slug: dbPage.slug,
-                    title: dbPage.title,
-                    is_fixed: dbPage.is_fixed,
-                    isPublished: !dbPage.hidden,
-                    headerType: dbPage.header_type || 'classic',
-                    footerType: dbPage.footer_type || 'full',
-                    headerTitle: dbPage.headerTitle || dbPage.title,
-                    headerMetaLeft: dbPage.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026',
-                    headerMetaCenter: dbPage.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism',
-                    headerMetaRight: dbPage.headerMetaRight || 'Fără zgomot. Doar idei.',
-                    footerText: dbPage.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.',
-                    elements: formattedElements
-                  });
-                }
-              }
+              this.pages.push({
+                id: dbPage.id,
+                slug: dbPage.slug,
+                title: dbPage.title,
+                is_fixed: dbPage.is_fixed,
+                isPublished: !dbPage.hidden,
+                headerType: dbPage.header_type || 'classic',
+                footerType: dbPage.footer_type || 'full',
+                headerTitle: dbPage.headerTitle || dbPage.title,
+                headerMetaLeft: dbPage.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026',
+                headerMetaCenter: dbPage.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism',
+                headerMetaRight: dbPage.headerMetaRight || 'Fără zgomot. Doar idei.',
+                footerText: dbPage.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.',
+                elements: formattedElements
+              });
             }
-          } catch (err) {
-            console.warn("Eroare la preluarea din Supabase:", err);
           }
-
-          if (this.pages.length > 0) {
-            this.currentPage = this.pages[0];
-            this.currentPageSlug = this.pages[0].slug;
-          }
-
-          // Ascultător pentru selecția de text
-          document.addEventListener('selectionchange', () => {
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-              const range = sel.getRangeAt(0);
-              if (!range.collapsed) {
-                const anchor = sel.anchorNode;
-                if (anchor && anchor.parentElement && anchor.parentElement.closest('[contenteditable="true"]')) {
-                  this.savedRange = range.cloneRange();
-                  this.currentSelectionText = sel.toString();
-                }
-              }
-            }
-          });
-        },
-
-        login() {
-          if (this.passwordInput === this.correctPassword) {
-            this.isAuthenticated = true;
-            sessionStorage.setItem('imaginea_lumii_auth', 'true');
-          } else {
-            alert('Parolă incorectă!');
-          }
-        },
-
-        logout() {
-          this.isAuthenticated = false;
-          sessionStorage.removeItem('imaginea_lumii_auth');
-          this.passwordInput = '';
-        },
-
-        switchPage() {
-          const found = this.pages.find(p => p.slug === this.currentPageSlug);
-          if (found) {
-            this.currentPage = found;
+        } else {
+          console.warn("Clientul Supabase nu a putut fi detectat în Studio.");
+        }
+      } catch (err) {
+        console.warn("Nu s-au putut încărca paginile din Supabase, folosim fallback local:", err);
+        const saved = localStorage.getItem('imaginea_lumii_pages');
+        if (saved) {
+          try {
+            this.pages = JSON.parse(saved);
+          } catch (e) {
+            console.error(e);
           }
         }
-      }));
-    });
+      }
+
+      if (this.pages.length > 0) {
+        this.currentPage = this.pages[0];
+        this.currentPageSlug = this.pages[0].slug;
+      }
+
+      // Ascultător pentru selecția de text
+      document.addEventListener('selectionchange', () => {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          if (!range.collapsed) {
+            const anchor = sel.anchorNode;
+            if (anchor && anchor.parentElement && anchor.parentElement.closest('[contenteditable="true"]')) {
+              this.savedRange = range.cloneRange();
+              this.currentSelectionText = sel.toString();
+            }
+          }
+        }
+      });
+    },
+
+    login() {
+      if (this.passwordInput === this.correctPassword) {
+        this.isAuthenticated = true;
+        sessionStorage.setItem('imaginea_lumii_auth', 'true');
+      } else {
+        alert('Parolă incorectă!');
+      }
+    },
+
+    logout() {
+      this.isAuthenticated = false;
+      sessionStorage.removeItem('imaginea_lumii_auth');
+      this.passwordInput = '';
+    },
+
+    switchPage() {
+      const found = this.pages.find(p => p.slug === this.currentPageSlug);
+      if (found) {
+        this.currentPage = found;
+      }
+    }
+  }));
+});
 
         createNewPage() {
           const name = prompt('Numele paginii (ex: Contact, Arhivă):');
