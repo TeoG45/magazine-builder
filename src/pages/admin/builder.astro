@@ -1709,6 +1709,16 @@ async init() {
           if (this.pages.length > 0) {
             this.currentPage = this.pages[0];
             this.currentPageSlug = this.pages[0].slug;
+          } else {
+            this.currentPage = {
+              slug: 'index',
+              title: 'Prima Pagină',
+              headerType: 'classic',
+              footerType: 'full',
+              headerTitle: 'IMAGINEA LUMII',
+              elements: []
+            };
+            this.currentPageSlug = 'index';
           }
 
           document.addEventListener('selectionchange', () => {
