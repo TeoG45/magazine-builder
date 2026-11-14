@@ -1633,21 +1633,72 @@ insertSourcesElement() {
 }
         ],
  
-       init() {
+       async init() {
           if (sessionStorage.getItem('imaginea_lumii_auth') === 'true') {
             this.isAuthenticated = true;
           }
 
-          const saved = localStorage.getItem('imaginea_lumii_pages');
-          if (saved) {
-            try {
-              this.pages = JSON.parse(saved);
-            } catch (e) {
-              console.error(e);
+          // Încărcăm paginile direct din Supabase la pornire
+          try {
+            if (window.supabaseClient) {
+              const sb = window.supabaseClient;
+              
+              const { data: dbPages, error: pagesError } = await sb
+                .from('pages')
+                .select('*')
+                .order('sort_order', { ascending: true });
+
+              if (!pagesError && dbPages && dbPages.length > 0) {
+                this.pages = [];
+
+                for (const dbPage of dbPages) {
+                  const { data: dbBlocks } = await sb
+                    .from('blocks')
+                    .select('*')
+                    .eq('page_id', dbPage.id)
+                    .order('sort_order', { ascending: true });
+
+                  const formattedElements = (dbBlocks || []).map(b => ({
+                    id: b.id,
+                    type: b.type,
+                    html: b.content?.html || '',
+                    style: b.content?.style || ''
+                  }));
+
+                  this.pages.push({
+                    id: dbPage.id,
+                    slug: dbPage.slug,
+                    title: dbPage.title,
+                    is_fixed: dbPage.is_fixed,
+                    isPublished: !dbPage.hidden,
+                    headerType: dbPage.header_type || 'classic',
+                    footerType: dbPage.footer_type || 'full',
+                    headerTitle: dbPage.headerTitle || dbPage.title,
+                    headerMetaLeft: dbPage.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026',
+                    headerMetaCenter: dbPage.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism',
+                    headerMetaRight: dbPage.headerMetaRight || 'Fără zgomot. Doar idei.',
+                    footerText: dbPage.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.',
+                    elements: formattedElements
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("Nu s-au putut încărca paginile din Supabase, folosim fallback local:", err);
+            const saved = localStorage.getItem('imaginea_lumii_pages');
+            if (saved) {
+              try {
+                this.pages = JSON.parse(saved);
+              } catch (e) {
+                console.error(e);
+              }
             }
           }
 
-          this.currentPage = this.pages[0];
+          if (this.pages.length > 0) {
+            this.currentPage = this.pages[0];
+            this.currentPageSlug = this.pages[0].slug;
+          }
 
           document.addEventListener('selectionchange', () => {
             const sel = window.getSelection();
@@ -1662,7 +1713,6 @@ insertSourcesElement() {
               }
             }
           });
-          this.saveCurrentPage();
         },
         
         login() {
