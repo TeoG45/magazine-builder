@@ -1706,21 +1706,91 @@ async init() {
             }
           }
 
+       document.addEventListener('alpine:init', () => {
+      Alpine.data('magazineBuilder', () => ({
+        pages: [],
+        currentPage: {
+          slug: 'index',
+          title: 'Se încarcă...',
+          headerType: 'classic',
+          footerType: 'full',
+          headerTitle: 'IMAGINEA LUMII',
+          elements: []
+        },
+        currentPageSlug: 'index',
+        isAuthenticated: false,
+        passwordInput: '',
+        correctPassword: 'admin', // sau parola ta curentă
+        activeModal: null,
+        savedRange: null,
+        currentSelectionText: '',
+
+        async init() {
+          if (sessionStorage.getItem('imaginea_lumii_auth') === 'true') {
+            this.isAuthenticated = true;
+          }
+
+          // Așteptăm clientul Supabase
+          let sb = window.supabaseClient;
+          let attempts = 0;
+          while (!sb && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            sb = window.supabaseClient;
+            attempts++;
+          }
+
+          try {
+            if (sb) {
+              const { data: dbPages, error: pagesError } = await sb
+                .from('pages')
+                .select('*')
+                .order('sort_order', { ascending: true });
+
+              if (!pagesError && dbPages && dbPages.length > 0) {
+                this.pages = [];
+
+                for (const dbPage of dbPages) {
+                  const { data: dbBlocks } = await sb
+                    .from('blocks')
+                    .select('*')
+                    .eq('page_id', dbPage.id)
+                    .order('sort_order', { ascending: true });
+
+                  const formattedElements = (dbBlocks || []).map(b => ({
+                    id: b.id,
+                    type: b.type,
+                    html: b.content?.html || '',
+                    style: b.content?.style || ''
+                  }));
+
+                  this.pages.push({
+                    id: dbPage.id,
+                    slug: dbPage.slug,
+                    title: dbPage.title,
+                    is_fixed: dbPage.is_fixed,
+                    isPublished: !dbPage.hidden,
+                    headerType: dbPage.header_type || 'classic',
+                    footerType: dbPage.footer_type || 'full',
+                    headerTitle: dbPage.headerTitle || dbPage.title,
+                    headerMetaLeft: dbPage.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026',
+                    headerMetaCenter: dbPage.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism',
+                    headerMetaRight: dbPage.headerMetaRight || 'Fără zgomot. Doar idei.',
+                    footerText: dbPage.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.',
+                    elements: formattedElements
+                  });
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("Eroare la preluarea din Supabase:", err);
+          }
+
           if (this.pages.length > 0) {
             this.currentPage = this.pages[0];
             this.currentPageSlug = this.pages[0].slug;
-          } else {
-            this.currentPage = {
-              slug: 'index',
-              title: 'Prima Pagină',
-              headerType: 'classic',
-              footerType: 'full',
-              headerTitle: 'IMAGINEA LUMII',
-              elements: []
-            };
-            this.currentPageSlug = 'index';
           }
 
+          // Ascultător pentru selecția de text
           document.addEventListener('selectionchange', () => {
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0) {
@@ -1735,7 +1805,7 @@ async init() {
             }
           });
         },
-        
+
         login() {
           if (this.passwordInput === this.correctPassword) {
             this.isAuthenticated = true;
@@ -1756,7 +1826,9 @@ async init() {
           if (found) {
             this.currentPage = found;
           }
-        },
+        }
+      }));
+    });
 
         createNewPage() {
           const name = prompt('Numele paginii (ex: Contact, Arhivă):');
