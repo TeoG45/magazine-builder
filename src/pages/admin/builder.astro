@@ -1,15 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 ---
-<script define:vars={{ supabaseUrl, supabaseAnonKey }}>
-  window.SUPABASE_URL = supabaseUrl;
-  window.SUPABASE_ANON_KEY = supabaseAnonKey;
-</script>
 <BaseLayout title="Visual Builder - Studio Tipografic">
   <Fragment slot="head">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,300;0,700;1,300&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;600&family=Space+Grotesk:wght@400;600&family=Special+Elite&family=Playpen+Sans&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,700;1,6..72,400&family=Cardo:ital,wght@0,400;0,700;1,400&family=Baskervville:ital@0;1&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;1,6..96,400&family=Amatic+SC:wght@700&family=Rozha+One&family=Italiana&family=Prata&family=Syne:wght@500;700&display=swap" rel="stylesheet">
@@ -105,8 +98,11 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             <button @click="activeTab = 'global'" :class="activeTab === 'global' ? 'bg-stone-100 border-b-2 border-amber-600 text-stone-900' : 'text-stone-600 hover:text-stone-900'" class="flex-1 py-3 px-1 text-center transition">
               3. Global
             </button>
-          </div>
-
+          
+<button @click="activeTab = 'pages'" :class="activeTab === 'pages' ? 'bg-stone-100 border-b-2 border-amber-600 text-stone-900' : 'text-stone-600 hover:text-stone-900'" class="flex-1 py-3 px-1 text-center transition">
+              4. 🗂️ Pagini
+            </button>
+            </div>
            <!-- TAB 1: Secțiuni & Elemente Modulare -->
           <div x-show="activeTab === 'sections'" class="p-4 flex flex-col gap-4">
             <h2 class="text-xs uppercase font-sans tracking-widest text-stone-500 font-bold">Panou Elemente Editoriale</h2>
@@ -373,6 +369,47 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               </select>
             </div>
           </div>
+          
+          
+         <!-- TAB 4: Pagini -->
+          <div x-show="activeTab === 'pages'" class="p-4 flex flex-col gap-4 text-xs">
+            <div class="bg-amber-100/70 p-3 border border-amber-300 rounded text-amber-900 leading-relaxed">
+              🗂️ <strong>Panou Control Pagini:</strong><br/>
+              Reordonați paginile (ordinea din listă este ordinea din meniul revistei) și gestionați vizibilitatea.
+            </div>
+
+            <div class="space-y-2">
+              <template x-for="(p, index) in pages" :key="p.slug">
+                <div class="p-3 bg-white border border-stone-300 rounded flex items-center justify-between shadow-2xs">
+                  <div>
+                    <span class="font-bold text-stone-900 block font-serif text-sm flex items-center gap-1.5">
+                      <span x-text="p.isPublished === false ? '🔒' : '🔓'" :title="p.isPublished === false ? 'Ascuns (Draft)' : 'Publicat'"></span>
+                      <span x-text="p.title"></span>
+                    </span>
+                    <span class="text-[10px] text-stone-400 font-mono" x-text="'/' + p.slug"></span>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <!-- Buton Mutare Sus -->
+                    <button @click="movePageUp(index)" :disabled="index === 0" class="bg-stone-100 hover:bg-stone-200 disabled:opacity-30 px-1.5 py-1 rounded text-stone-700 font-bold text-[10px]" title="Mută sus în meniu">▲</button>
+                    <!-- Buton Mutare Jos -->
+                    <button @click="movePageDown(index)" :disabled="index === pages.length - 1" class="bg-stone-100 hover:bg-stone-200 disabled:opacity-30 px-1.5 py-1 rounded text-stone-700 font-bold text-[10px]" title="Mută jos în meniu">▼</button>
+                    <!-- Buton Vizibilitate Lăcățel -->
+                    <button @click="togglePageVisibility(index)" class="bg-stone-100 hover:bg-stone-200 px-1.5 py-1 rounded text-stone-700 font-bold text-[10px]" :title="p.isPublished === false ? 'Fă vizibil pentru cititori' : 'Ascunde pentru cititori'">
+                      <span x-text="p.isPublished === false ? '🔒' : '🔓'"></span>
+                    </button>
+                    <!-- Buton Editează -->
+                    <button @click="currentPageSlug = p.slug; switchPage()" class="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded text-[10px]">Editează</button>
+                    <!-- Buton Șterge -->
+                    <template x-if="pages.length > 1 && p.slug !== 'index'">
+                      <button @click="deletePage(p.slug)" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 font-bold rounded text-[10px]" title="Șterge pagina">✕</button>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>    
+          
         </aside>
 
         <!-- Main Canvas -->
@@ -392,9 +429,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                   </div>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-4xl font-bold tracking-tight text-stone-900 mt-2 outline-dashed outline-1 outline-transparent hover:outline-amber-500 focus:outline-amber-600 px-2 rounded" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
                   <nav class="flex justify-center gap-8 text-xs uppercase font-sans font-medium tracking-widest text-stone-700 mt-4 border-t border-stone-200 pt-3">
-                    <template x-for="p in pages">
-                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-amber-800"></a>
-                    </template>
+                   <template x-for="p in pages.filter(page => page.isPublished !== false)">
+  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
+</template>
                   </nav>
                 </div>
               </template>
@@ -404,9 +441,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                 <div class="py-4 px-6 font-sans flex justify-between items-center border-b border-stone-100">
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="font-bold text-xl text-stone-900 tracking-tight" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
                   <nav class="flex gap-6 text-xs uppercase font-medium text-stone-600">
-                    <template x-for="p in pages">
-                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-stone-900"></a>
-                    </template>
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
+</template>
                   </nav>
                 </div>
               </template>
@@ -460,9 +497,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                 <div class="py-4 px-6 flex justify-between items-center font-sans">
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="font-serif font-bold text-xl text-stone-900" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
                   <nav class="flex gap-2">
-                    <template x-for="p in pages">
-                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="bg-stone-200 hover:bg-stone-900 hover:text-white px-3 py-1 rounded-full text-xs font-medium transition"></a>
-                    </template>
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
+</template>
                   </nav>
                 </div>
               </template>
@@ -1624,6 +1661,48 @@ insertSourcesElement() {
             this.saveCurrentPage();
           }
         },
+       
+      deletePage(slug) {
+          if (this.pages.length <= 1) return;
+          
+          const pageToDelete = this.pages.find(p => p.slug === slug);
+          const pageTitle = pageToDelete ? pageToDelete.title : slug;
+
+          if (confirm(`Sigur doriți să ștergeți pagina „${pageTitle}”? Această acțiune este ireversibilă.`)) {
+            this.pages = this.pages.filter(p => p.slug !== slug);
+            if (this.currentPageSlug === slug) {
+              this.currentPageSlug = this.pages[0].slug;
+              this.currentPage = this.pages[0];
+            }
+            this.saveCurrentPage();
+          }
+        },       
+        
+        movePageUp(index) {
+          if (index > 0) {
+            const temp = this.pages[index];
+            this.pages[index] = this.pages[index - 1];
+            this.pages[index - 1] = temp;
+            this.saveCurrentPage();
+          }
+        },
+
+        movePageDown(index) {
+          if (index < this.pages.length - 1) {
+            const temp = this.pages[index];
+            this.pages[index] = this.pages[index + 1];
+            this.pages[index + 1] = temp;
+            this.saveCurrentPage();
+          }
+        },
+
+        togglePageVisibility(index) {
+          if (this.pages[index]) {
+            const currentStatus = this.pages[index].isPublished !== false;
+            this.pages[index].isPublished = !currentStatus;
+            this.saveCurrentPage();
+          }
+        },
         
         openModal(modalName) {
           this.activeModal = modalName;
@@ -1951,62 +2030,25 @@ toggleCenterWidth(index) {
           }
           this.saveCurrentPage();
         },
-async saveCurrentPage() {
-          try {
-            const currentState = JSON.stringify(this.pages);
-            if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
-              this.pageHistory.push(currentState);
-              if (this.pageHistory.length > 5) { this.pageHistory.shift(); }
-            }
-            localStorage.setItem('imaginea_lumii_pages', currentState);
 
-            const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-            
-            // Folosim variabilele globale setate sigur de Astro
-            const SUPABASE_URL = window.SUPABASE_URL;
-            const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
-            
-            const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-            const page = this.currentPage;
-            if (!page) return;
-const { error: pageError } = await db
-              .from('pages')
-              .upsert({
-                id: page.slug,
-                title: page.title,
-                slug: page.slug,
-                header_type: page.headerType || 'classic',
-                footer_type: page.footerType || 'full',
-                sort_order: 0
-              }, { onConflict: 'slug' });
-
-            if (pageError) throw pageError;
-
-            await db.from('blocks').delete().eq('page_id', page.slug);
-
-            if (page.elements && page.elements.length > 0) {
-              const blocksToInsert = page.elements.map((el, index) => ({
-                id: crypto.randomUUID(),
-                page_id: page.slug,
-                type: 'element',
-                sort_order: index,
-                content: {
-                  html: el.html || '',
-                  style: el.style || 'width: 100%;'
-                }
-              }));
-
-              const { error: blocksError } = await db.from('blocks').insert(blocksToInsert);
-              if (blocksError) throw blocksError;
-            }
-
-            console.log("✅ Salvat cu succes în Supabase!");
-          } catch (e) {
-            console.error("Eroare la salvare:", e);
-            alert("Eroare la salvarea în baza de date: " + (e.message || e));
+saveCurrentPage() {
+      try {
+        const currentState = JSON.stringify(this.pages);
+        
+        if (this.pageHistory.length === 0 || this.pageHistory[this.pageHistory.length - 1] !== currentState) {
+          this.pageHistory.push(currentState);
+          if (this.pageHistory.length > 5) { // Redus la 5 stări anterioare pentru siguranță
+            this.pageHistory.shift();
           }
-        },
+        }
+
+        localStorage.setItem('imaginea_lumii_pages', currentState);
+      } catch (e) {
+        console.warn("Memoria LocalStorage este plină. Curățați istoricul sau folosiți imagini prin URL.");
+        alert("Atenție: Spațiul de stocare din browser este plin din cauza imaginilor mari. Vă recomandăm să folosiți link-uri externe (Unsplash/Supabase) sau să faceți un Export (Backup) și să goliți cache-ul.");
+      }
+    },
+
 undoLastAction() {
           if (this.pageHistory.length <= 1) {
             alert('Nu mai există nicio acțiune anterioară în memorie pentru undo!');
