@@ -431,10 +431,10 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                     <span contenteditable="true" @blur="updateElementHtml($event, null, 'headerMetaRight')" x-text="currentPage.headerMetaRight || 'Fără zgomot. Doar idei.'"></span>
                   </div>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-4xl font-bold tracking-tight text-stone-900 mt-2 outline-dashed outline-1 outline-transparent hover:outline-amber-500 focus:outline-amber-600 px-2 rounded" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
-                  <nav class="flex justify-center gap-8 text-xs uppercase font-sans font-medium tracking-widest text-stone-700 mt-4 border-t border-stone-200 pt-3">
-                   <template x-for="p in pages.filter(page => page.isPublished !== false)">
-  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
-</template>
+                  <nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold tracking-widest text-stone-800 mt-4 border-t border-stone-200 pt-3">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-amber-800"></a>
+                    </template>
                   </nav>
                 </div>
               </template>
@@ -443,10 +443,10 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               <template x-if="currentPage.headerType === 'minimal'">
                 <div class="py-4 px-6 font-sans flex justify-between items-center border-b border-stone-100">
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="font-bold text-xl text-stone-900 tracking-tight" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
-                  <nav class="flex gap-6 text-xs uppercase font-medium text-stone-600">
+                  <nav class="flex items-center gap-6 text-xs uppercase font-medium text-stone-600">
                     <template x-for="p in pages.filter(page => page.isPublished !== false)">
-  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
-</template>
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-stone-900"></a>
+                    </template>
                   </nav>
                 </div>
               </template>
@@ -457,6 +457,11 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                   <span class="text-[10px] font-sans uppercase tracking-[0.4em] text-amber-500 block mb-2">Artă & Cultură</span>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-3xl tracking-wide font-normal text-white px-2 rounded" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
                   <div class="w-12 h-px bg-amber-600 mx-auto mt-3"></div>
+                  <nav class="flex justify-center gap-10 text-xs uppercase font-sans tracking-widest text-stone-300 mt-6">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-amber-400"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
@@ -465,6 +470,11 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                 <div class="text-center py-6 font-serif">
                   <div class="inline-block bg-stone-900 text-amber-400 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full mb-2">Ediție Oficială</div>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-3xl font-bold text-stone-900 tracking-wide" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold tracking-wider text-stone-800 mt-5">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-amber-800"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
@@ -472,7 +482,11 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               <template x-if="currentPage.headerType === 'brutalist'">
                 <div class="py-4 px-6 font-sans bg-black text-white -m-4 p-4 flex justify-between items-center">
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-xl font-black uppercase tracking-tighter text-amber-400" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
-                  <span class="text-xs uppercase font-mono bg-white text-black px-2 py-1">BRUTAL</span>
+                  <nav class="flex gap-3 text-xs font-bold uppercase">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="bg-white border border-black text-black px-2.5 py-1 hover:bg-black hover:text-white"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
@@ -481,45 +495,66 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                 <div class="text-center py-6 font-serif bg-[#F5F0E6] text-stone-800 -m-4 p-4 border-b border-stone-300">
                   <span class="text-xs italic text-amber-900 block mb-1">Culegere de scrieri alese</span>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-3xl font-bold tracking-serif" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <div class="w-24 h-px bg-amber-900/30 mx-auto my-3"></div>
+                  <nav class="flex justify-center gap-6 text-xs uppercase font-sans tracking-widest text-amber-900">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-amber-950"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
               <!-- 7. Magazin Split (Double Decker) -->
               <template x-if="currentPage.headerType === 'double'">
-                <div class="py-3 px-6 font-serif border-b border-stone-300">
-                  <div class="flex justify-between text-[10px] text-stone-500 uppercase tracking-widest pb-1 border-b border-stone-200 mb-2">
+                <div class="py-3 px-6 font-serif border-b border-stone-300 -m-4 bg-white">
+                  <div class="flex justify-between text-[10px] text-stone-500 uppercase tracking-widest pb-1 border-b border-stone-200 mb-2 bg-stone-900 text-stone-200 px-6 py-1.5 -mx-6 -mt-3">
                     <span>Magazin Săptămânal</span>
                     <span>Noiembrie 2026</span>
                   </div>
-                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-2xl font-bold text-stone-900 text-center" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-2xl font-bold text-stone-900 text-center py-2" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <nav class="flex justify-start gap-8 px-2 py-2.5 uppercase font-semibold text-stone-700 font-sans text-xs border-t border-stone-200">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-stone-900"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
               <!-- 8. Tab-uri Rotunjite (Floating Pills) -->
               <template x-if="currentPage.headerType === 'pills'">
-                <div class="py-4 px-6 flex justify-between items-center font-sans">
-                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="font-serif font-bold text-xl text-stone-900" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
-                  <nav class="flex gap-2">
+                <div class="py-6 px-6 text-center font-serif bg-[#F8F6F0] -m-4">
+                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="font-serif font-bold text-3xl text-stone-900 mb-4" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <nav class="inline-flex bg-stone-200 p-1.5 rounded-full gap-2 text-xs font-sans uppercase font-medium">
                     <template x-for="p in pages.filter(page => page.isPublished !== false)">
-  <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" ...></a>
-</template>
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="text-stone-600 hover:text-stone-900 px-4 py-1.5 rounded-full"></a>
+                    </template>
                   </nav>
                 </div>
               </template>
 
               <!-- 9. Tipografie Dramatică (Giant Hero) -->
               <template x-if="currentPage.headerType === 'dramatic'">
-                <div class="text-center py-10 font-serif">
-                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-5xl font-extrabold text-stone-900 tracking-tighter" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
-                  <div class="w-24 h-1 bg-stone-900 mx-auto mt-4"></div>
+                <div class="text-center py-10 font-serif bg-stone-900 text-white -m-4 p-8">
+                  <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-5xl font-extrabold text-white tracking-tighter uppercase" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <div class="w-24 h-1 bg-amber-500 mx-auto mt-4"></div>
+                  <nav class="flex justify-center gap-8 text-xs uppercase font-sans font-semibold tracking-widest text-stone-300 mt-6">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="hover:text-white"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
               <!-- 10. Arhivă Retro (Typewriter) -->
               <template x-if="currentPage.headerType === 'typewriter'">
-                <div class="py-4 px-6 font-mono border-b-2 border-dashed border-stone-400 bg-[#F0EDE6]">
-                  <div class="text-[10px] text-stone-500 uppercase tracking-widest mb-1">SISTEM ARHIVĂ // 2026</div>
+                <div class="py-4 px-6 font-mono border-b-2 border-dashed border-stone-400 bg-[#F0EDE6] -m-4 p-6">
+                  <div class="text-[10px] text-stone-500 uppercase tracking-widest mb-1">[ SISTEM ARHIVĂ // 2026 ]</div>
                   <h1 contenteditable="true" @blur="updateElementHtml($event, null, 'headerTitle')" class="text-2xl font-bold text-stone-900 uppercase" x-text="currentPage.headerTitle || 'IMAGINEA LUMII'"></h1>
+                  <nav class="flex justify-center gap-6 text-xs uppercase font-mono mt-3">
+                    <template x-for="p in pages.filter(page => page.isPublished !== false)">
+                      <a :href="p.slug === 'index' ? '/' : '/' + p.slug" x-text="p.title" class="text-stone-700 hover:bg-stone-300 px-2 py-1"></a>
+                    </template>
+                  </nav>
                 </div>
               </template>
 
@@ -532,7 +567,6 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                     Pagină goală. Adăugați elemente sau bannere din tab-ul „Secțiuni”.
                   </div>
                 </template>
-
                 <template x-for="(el, index) in currentPage.elements" :key="index">
   <!-- Containerul principal care deține atât elementul, cât și bara flotantă -->
   <div 
