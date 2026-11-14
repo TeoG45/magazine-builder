@@ -1706,8 +1706,10 @@ async init() {
             }
           }
 
-      document.addEventListener('alpine:init', () => {
-  Alpine.data('magazineBuilder', () => ({
+      
+     document.addEventListener('alpine:init', () => {
+  Alpine.data('adminApp', () => ({
+    // Starea paginilor și a paginii curente (cu fallback sigur ca să nu dea null)
     pages: [],
     currentPage: {
       slug: 'index',
@@ -1718,10 +1720,44 @@ async init() {
       elements: []
     },
     currentPageSlug: 'index',
+    
+    // Starea de autentificare
     isAuthenticated: false,
     passwordInput: '',
     correctPassword: 'admin',
+
+    // Tab-uri și UI
+    activeTab: 'sections',
     activeModal: null,
+    showImageModal: false,
+    imageTab: 'url',
+    imageUrlInput: '',
+    imagePositionInput: 'normal',
+    removeTextBackground: false,
+    imageCaptionInput: '',
+
+    // Toolbar & Listele pentru stilizare text
+    selectedFont: 'font-serif',
+    fontList: [
+      { label: 'Serif Clasic', value: 'font-serif' },
+      { label: 'Sans Modern', value: 'font-sans' },
+      { label: 'Mono / Tech', value: 'font-mono' }
+    ],
+    selectedSize: 'text-base',
+    sizeList: ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl'],
+    selectedColor: 'text-stone-900',
+    colorList: [
+      { label: 'Negru Cărbune', value: 'text-stone-900' },
+      { label: 'Maro Terracotta', value: 'text-amber-900' },
+      { label: 'Gri Elegant', value: 'text-stone-600' }
+    ],
+    selectedTransform: 'normal-case',
+    selectedDropCap: 'none',
+    selectedLineHeight: 'leading-normal',
+    selectedWordSpacing: 'normal',
+    selectedLetterSpacing: 'tracking-normal',
+
+    // Selecție text
     savedRange: null,
     currentSelectionText: '',
 
@@ -1730,7 +1766,7 @@ async init() {
         this.isAuthenticated = true;
       }
 
-      // Așteptăm ca clientul Supabase să fie disponibil (max 2 secunde)
+      // Așteptăm clientul Supabase
       let sb = window.supabaseClient;
       let attempts = 0;
       while (!sb && attempts < 20) {
@@ -1739,7 +1775,7 @@ async init() {
         attempts++;
       }
 
-      // Încărcăm paginile direct din Supabase la pornire
+      // Încărcăm paginile din Supabase
       try {
         if (sb) {
           const { data: dbPages, error: pagesError } = await sb
@@ -1841,7 +1877,11 @@ async init() {
       }
     }
   }));
-});
+}); 
+      
+      
+      
+      
 
         createNewPage() {
           const name = prompt('Numele paginii (ex: Contact, Arhivă):');
