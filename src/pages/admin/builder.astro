@@ -1633,20 +1633,29 @@ insertSourcesElement() {
 }
         ],
  
-       async init() {
+async init() {
           if (sessionStorage.getItem('imaginea_lumii_auth') === 'true') {
             this.isAuthenticated = true;
           }
 
+          // Așteptăm ca window.supabaseClient să fie disponibil (maximum 2 secunde)
+          let sb = window.supabaseClient;
+          let attempts = 0;
+          while (!sb && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            sb = window.supabaseClient;
+            attempts++;
+          }
+
           // Încărcăm paginile direct din Supabase la pornire
           try {
-            if (window.supabaseClient) {
-              const sb = window.supabaseClient;
-              
+            if (sb) {
               const { data: dbPages, error: pagesError } = await sb
                 .from('pages')
                 .select('*')
                 .order('sort_order', { ascending: true });
+
+              console.log("Studio - Pagini gasite in Supabase:", dbPages, "Eroare:", pagesError);
 
               if (!pagesError && dbPages && dbPages.length > 0) {
                 this.pages = [];
@@ -1682,6 +1691,8 @@ insertSourcesElement() {
                   });
                 }
               }
+            } else {
+              console.warn("Clientul Supabase nu a putut fi detectat în Studio.");
             }
           } catch (err) {
             console.warn("Nu s-au putut încărca paginile din Supabase, folosim fallback local:", err);
