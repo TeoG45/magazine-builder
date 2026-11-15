@@ -217,14 +217,16 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             </div>
 
             <div>
-              <label class="block uppercase font-bold text-stone-700 mb-1 tracking-wider">Stiluri rapide</label>
-              <div class="grid grid-cols-4 gap-1">
-                <button type="button" @click="executeTipTapCommand('bold')" class="bg-white border border-stone-300 py-1.5 font-bold hover:bg-stone-900 hover:text-white rounded transition">B</button>
-                <button type="button" @click="executeTipTapCommand('italic')" class="bg-white border border-stone-300 py-1.5 italic hover:bg-stone-900 hover:text-white rounded transition">I</button>
-                <button type="button" @click="executeTipTapCommand('underline')" class="bg-white border border-stone-300 py-1.5 underline hover:bg-stone-900 hover:text-white rounded transition">U</button>
-                <button type="button" @click="executeTipTapCommand('strike')" class="bg-white border border-stone-300 py-1.5 line-through hover:bg-stone-900 hover:text-white rounded transition">S</button>
-              </div>
-            </div>
+  <label class="block uppercase font-bold text-stone-700 mb-1 tracking-wider">Stiluri rapide & Link</label>
+  <div class="grid grid-cols-5 gap-1">
+    <button type="button" @click="executeTipTapCommand('bold')" class="bg-white border border-stone-300 py-1.5 font-bold hover:bg-stone-900 hover:text-white rounded transition">B</button>
+    <button type="button" @click="executeTipTapCommand('italic')" class="bg-white border border-stone-300 py-1.5 italic hover:bg-stone-900 hover:text-white rounded transition">I</button>
+    <button type="button" @click="executeTipTapCommand('underline')" class="bg-white border border-stone-300 py-1.5 underline hover:bg-stone-900 hover:text-white rounded transition">U</button>
+    <button type="button" @click="executeTipTapCommand('strike')" class="bg-white border border-stone-300 py-1.5 line-through hover:bg-stone-900 hover:text-white rounded transition">S</button>
+    <!-- Noul buton de Link -->
+    <button type="button" @click="insertLink()" class="bg-white border border-stone-300 py-1.5 hover:bg-stone-900 hover:text-white rounded transition font-bold" title="Inserează Link">🔗</button>
+  </div>
+</div>
 
             <div>
               <label class="block uppercase font-bold text-stone-700 mb-1 tracking-wider">Alege Fontul</label>
@@ -1829,6 +1831,50 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             selection.removeAllRanges();
             selection.addRange(this.savedRange);
             document.execCommand(command, false, null);
+            this.saveCurrentPage();
+          },
+          
+          insertLink() {
+            if (!this.savedRange) {
+              alert('Vă rugăm să selectați mai întâi cuvântul sau fraza pe care doriți să o transformați în link!');
+              return;
+            }
+
+            const url = prompt('Introduceți adresa web (URL) pentru link (ex: https://stiripesurse.ro):');
+            if (!url) return;
+
+            let finalUrl = url.trim();
+            if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+              finalUrl = 'https://' + finalUrl;
+            }
+
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(this.savedRange);
+
+            const range = selection.getRangeAt(0);
+            const a = document.createElement('a');
+            a.href = finalUrl;
+            a.target = '_blank';
+            a.className = 'text-amber-800 hover:underline font-semibold';
+            a.appendChild(range.extractContents());
+            range.insertNode(a);
+
+            selection.removeAllRanges();
+            this.savedRange = null;
+            this.currentSelectionText = '';
+
+            const editableBox = a.closest('[contenteditable="true"]');
+            if (editableBox) {
+              const parentProse = editableBox.closest('.prose');
+              const proseDivs = Array.from(document.querySelectorAll('.prose'));
+              const index = proseDivs.indexOf(parentProse);
+
+              if (index !== -1 && this.currentPage.elements[index]) {
+                this.currentPage.elements[index].html = parentProse.innerHTML;
+              }
+            }
+
             this.saveCurrentPage();
           },
       
