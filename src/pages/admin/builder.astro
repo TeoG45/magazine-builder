@@ -1213,11 +1213,17 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             const pageToDelete = this.pages.find(p => p.slug === slug);
             const pageTitle = pageToDelete ? pageToDelete.title : slug;
 
-            if (confirm(`Sigur doriți să ștergeți pagina „${pageTitle}”? Această acțiune este ireversibilă.`)) {
+         if (confirm(`Sigur doriți să ștergeți pagina „${pageTitle}”? Această acțiune este ireversibilă.`)) {
+              const pageIdToDelete = pageToDelete ? (pageToDelete.id || pageToDelete.slug) : slug;
               this.pages = this.pages.filter(p => p.slug !== slug);
               if (this.currentPageSlug === slug) {
                 this.currentPageSlug = this.pages[0].slug;
                 this.currentPage = this.pages[0];
+              }
+              if (window.supabaseClient) {
+                window.supabaseClient.from('blocks').delete().eq('page_id', pageIdToDelete).then(() => {
+                  window.supabaseClient.from('pages').delete().eq('slug', slug);
+                });
               }
               this.saveCurrentPage();
             }
@@ -2044,20 +2050,51 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
                   if (!pageError) {
                     const pageId = pagePayload.id;
-                    if (p.elements && Array.isArray(p.elements)) {
-                      for (let i = 0; i < p.elements.length; i++) {
-                        const el = p.elements[i];
-                        const blockPayload = {
-                          id: el.id || `${p.slug}-block-${i}`,
-                          page_id: pageId,
-                          type: el.type || 'html',
-                          sort_order: i,
-                          content: { html: el.html, style: el.style || '' },
-                          hidden: false
-                        };
+                    const currentElements = Array.isArray(p.elements) ? p.elements : [];
 
-                        await sb.from('blocks').upsert(blockPayload, { onConflict: 'id' });
+                    // Ne asigurăm că fiecare element are un ID stabil
+                    currentElements.forEach(el => {
+                      if (!el.id) {
+                        el.id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                          ? crypto.randomUUID()
+                          : `${p.slug}-block-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
                       }
+                    });
+
+                    // 1. Ștergem din Supabase blocurile care au fost eliminate în Studio
+                    const keepIds = currentElements.map(el => el.id);
+                    if (keepIds.length === 0) {
+                      await sb.from('blocks').delete().eq('page_id', pageId);
+                    } else {
+                      const { data: existingBlocks } = await sb
+                        .from('blocks')
+                        .select('id')
+                        .eq('page_id', pageId);
+
+                      if (existingBlocks && existingBlocks.length > 0) {
+                        const idsToDelete = existingBlocks
+                          .map(b => b.id)
+                          .filter(id => !keepIds.includes(id));
+
+                        if (idsToDelete.length > 0) {
+                          await sb.from('blocks').delete().in('id', idsToDelete);
+                        }
+                      }
+                    }
+
+                    // 2. Salvăm / actualizăm blocurile rămase
+                    for (let i = 0; i < currentElements.length; i++) {
+                      const el = currentElements[i];
+                      const blockPayload = {
+                        id: el.id,
+                        page_id: pageId,
+                        type: el.type || 'element',
+                        sort_order: i,
+                        content: { html: el.html, style: el.style || '' },
+                        hidden: false
+                      };
+
+                      await sb.from('blocks').upsert(blockPayload, { onConflict: 'id' });
                     }
                   }
                 }
