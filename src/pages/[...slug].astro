@@ -75,15 +75,16 @@ export function getStaticPaths() {
         const mainPage = pages.find(p => p.slug === 'index');
 
         if (pageData) {
-          const customTitle = pageData.headerTitle || pageData.title || 'IMAGINEA LUMII';
-          const metaLeft = pageData.headerMetaLeft || 'Ediția Nr. 42 — Noiembrie 2026';
-          const metaCenter = pageData.headerMetaCenter || 'Revistă Săptămânală de Slow Journalism';
-          const metaRight = pageData.headerMetaRight || 'Fără zgomot. Doar idei.';
+          const headerSource = mainPage || pageData;
+          const customTitle = headerSource.header_title || 'IMAGINEA LUMII';
+          const metaLeft = headerSource.header_meta_left || 'Ediția Nr. 1 — Lansare';
+          const metaCenter = headerSource.header_meta_center || 'Lumea așa cum este trăită de oamenii ei obișnuiți';
+          const metaRight = headerSource.header_meta_right || 'Pe toate continentele';
           
           // FORȚĂM UNICITATEA: Toate paginile preiau stilul de header setat pe pagina PRINCIPALĂ (index)
           const headerStyle = (mainPage && mainPage.header_type) ? mainPage.header_type : 'classic';
           const footerStyle = (mainPage && mainPage.footer_type) ? mainPage.footer_type : (pageData.footer_type || 'full');
-          const customFooter = pageData.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.';
+          const customFooter = headerSource.footer_text || pageData.footerText || '© 2026 Imaginea Lumii. Toate drepturile rezervate.';
           
           const newsTitle = pageData.newsletterTitle || '📬 Scrisori Editoriale pe Email';
           const newsDesc = pageData.newsletterDesc || 'Primiți analize profunde și eseurile săptămânale direct în inbox. Fără zgomot.';
