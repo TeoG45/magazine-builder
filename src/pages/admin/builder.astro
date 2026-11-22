@@ -364,15 +364,21 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               Reordonați paginile (ordinea din listă este ordinea din meniul revistei) și gestionați vizibilitatea.
             </div>
 
-            <div class="space-y-2">
+           <div class="space-y-2">
               <template x-for="(p, index) in pages" :key="p.slug">
                 <div class="p-3 bg-white border border-stone-300 rounded flex items-center justify-between shadow-2xs">
-                  <div>
-                    <span class="font-bold text-stone-900 block font-serif text-sm flex items-center gap-1.5">
+                  <div class="flex-1 mr-2">
+                    <div class="font-bold text-stone-900 font-serif text-sm flex items-center gap-1.5">
                       <span x-text="p.isPublished === false ? '🔒' : '🔓'" :title="p.isPublished === false ? 'Ascuns (Draft)' : 'Publicat'"></span>
-                      <span x-text="p.title"></span>
-                    </span>
-                    <span class="text-[10px] text-stone-400 font-mono" x-text="'/' + p.slug"></span>
+                      <input 
+                        type="text" 
+                        x-model="p.title" 
+                        @change="saveCurrentPage()" 
+                        class="w-full bg-stone-50 hover:bg-amber-50/60 focus:bg-white border border-transparent focus:border-amber-600 rounded px-1.5 py-0.5 text-sm font-serif font-bold text-stone-900 focus:outline-none"
+                        title="Click pentru a redenumi pagina în meniu"
+                      />
+                    </div>
+                    <span class="text-[10px] text-stone-400 font-mono pl-5 block" x-text="p.slug === 'index' ? '/ (Prima pagină)' : '/' + p.slug"></span>
                   </div>
 
                   <div class="flex items-center gap-1">
@@ -1093,7 +1099,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
                     this.pages.push({
                       id: dbPage.id,
                       slug: dbPage.slug,
-                      title: dbPage.title,
+                      title: dbPage.slug === 'index' && (!dbPage.title || dbPage.title === 'Prima Pagină (Homepage)' || dbPage.title === 'IMAGINEA LUMII') ? 'Acasă' : (dbPage.title || 'Acasă'),
                       is_fixed: dbPage.is_fixed,
                       isPublished: !dbPage.hidden,
                       headerType: dbPage.header_type || 'classic',
@@ -1125,7 +1131,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
             if (this.pages.length === 0) {
               this.pages = [{
                 slug: 'index',
-                title: 'Prima Pagină (Homepage)',
+                title: 'Acasă',
                 headerType: 'classic',
                 footerType: 'full',
                 headerTitle: 'IMAGINEA LUMII',
